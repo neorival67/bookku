@@ -41,9 +41,9 @@ class InvalidInputException extends AppException {
       : super(message ?? "Invalid Input", "Invalid Input: ");
 }
 
-/// Exception thrown when there is an authentication error
-class AuthException extends AppException {
-  AuthException([String? message]) 
+/// Exception thrown when there is an authentication error (renamed to avoid conflict)
+class AppAuthException extends AppException {
+  AppAuthException([String? message]) 
       : super(message ?? "Authentication Failed", "Auth Error: ");
 }
 

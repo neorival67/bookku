@@ -2,8 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppConfig {
   // Supabase Configuration
-  static const String supabaseUrl = 'https://your-project-ref.supabase.co';
-  static const String supabaseAnonKey = 'your-anon-key-here';
+  static const String supabaseUrl = 'https://dvodqrflvlkkhtyeteca.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2b2RxcmZsdmxra2h0eWV0ZWNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMjc3OTIsImV4cCI6MjA2NDcwMzc5Mn0.uxF3KRINMIrRIXnEgle44pEEhFB94mEMyk3RRHQWj8g';
   
   // App Configuration
   static const String appName = 'Book Reader';

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../services/api_client.dart';
-import '../../../models/user.dart';
+import '../../services/api_client.dart';
+import '../../models/user.dart';
+import '../../utils/app_exceptions.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -45,9 +46,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthState.authenticated(user));
+    } on AppAuthException catch (e) {
+      emit(AuthState.unauthenticated(
+        errorMessage: e.message,
+      ));
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: e.toString(),
+        errorMessage: 'Login failed: ${e.toString()}',
       ));
     }
   }
@@ -65,9 +70,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthState.authenticated(user));
+    } on AppAuthException catch (e) {
+      emit(AuthState.unauthenticated(
+        errorMessage: e.message,
+      ));
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: e.toString(),
+        errorMessage: 'Registration failed: ${e.toString()}',
       ));
     }
   }
@@ -79,9 +88,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await _apiClient.logout();
       emit(const AuthState.unauthenticated());
+    } on AppAuthException catch (e) {
+      emit(AuthState.unauthenticated(
+        errorMessage: e.message,
+      ));
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: e.toString(),
+        errorMessage: 'Logout failed: ${e.toString()}',
       ));
     }
   }

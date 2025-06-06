@@ -14,29 +14,38 @@ class SupabaseService {
     required String name,
   }) async {
     try {
-      final response = await client.auth.signUp(
+      // Sign up the user first
+      final authResponse = await client.auth.signUp(
         email: email,
         password: password,
-        data: {'name': name},
       );
       
-      if (response.user == null) {
+      if (authResponse.user == null) {
         throw AppAuthException('Failed to create account');
       }
       
-      // Get the created profile
-      final profile = await client
+      // Create the profile using the insert method with returning data
+      final profileResponse = await client
           .from('profiles')
+          .insert([
+            {
+              'id': authResponse.user!.id,
+              'name': name,
+              'email': email,
+              'created_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+          ])
           .select()
-          .eq('id', response.user!.id)
           .single();
       
+      // Create and return the user object
       return app_user.User(
-        id: response.user!.id,
-        email: response.user!.email!,
-        name: profile['name'],
-        profileImage: profile['profile_image'],
-        createdAt: DateTime.parse(profile['created_at']),
+        id: authResponse.user!.id,
+        email: authResponse.user!.email!,
+        name: profileResponse['name'],
+        profileImage: profileResponse['profile_image'],
+        createdAt: DateTime.parse(profileResponse['created_at']),
       );
     } on supabase.AuthException catch (e) {
       // Handle Supabase AuthException
