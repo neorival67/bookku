@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
@@ -30,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final apiClient = ApiClient();
+      final apiClient = context.read<ApiClient>();
       final favoriteBooks = await apiClient.getFavoriteBooks();
 
       setState(() {
@@ -57,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _onFavoriteTap(Book book) async {
     try {
-      final apiClient = ApiClient();
+      final apiClient = context.read<ApiClient>();
       await apiClient.toggleFavorite(book.id);
       
       // Refresh the favorite books
@@ -137,13 +138,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                          backgroundImage: user.profileImage != null
-                              ? NetworkImage(user.profileImage!)
+                          backgroundImage: user.avatarUrl != null
+                              ? NetworkImage(user.avatarUrl!)
                               : null,
-                          child: user.profileImage == null
+                          child: user.avatarUrl == null
                               ? Text(
-                                  user.name.isNotEmpty
-                                      ? user.name[0].toUpperCase()
+                                  user.name?.isNotEmpty == true
+                                      ? user.name![0].toUpperCase()
                                       : '?',
                                   style: const TextStyle(
                                     fontSize: 40,
@@ -156,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         // User Name
                         Text(
-                          user.name,
+                          user.name ?? 'User',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,

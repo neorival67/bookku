@@ -14,7 +14,7 @@ class SupabaseService {
     required String name,
   }) async {
     try {
-      // Sign up the user first
+      // Step 1: Sign up the user first
       final authResponse = await client.auth.signUp(
         email: email,
         password: password,
@@ -23,32 +23,50 @@ class SupabaseService {
       if (authResponse.user == null) {
         throw AppAuthException('Failed to create account');
       }
-      
-      // Create the profile using the insert method with returning data
-      final profileResponse = await client
-          .from('profiles')
-          .insert([
-            {
+
+      // Step 2: Create the profile record directly
+      try {
+        final profile = await client
+            .from('profiles')
+            .insert({
               'id': authResponse.user!.id,
               'name': name,
               'email': email,
               'created_at': DateTime.now().toIso8601String(),
               'updated_at': DateTime.now().toIso8601String(),
-            },
-          ])
-          .select()
-          .single();
-      
-      // Create and return the user object
-      return app_user.User(
-        id: authResponse.user!.id,
-        email: authResponse.user!.email!,
-        name: profileResponse['name'],
-        profileImage: profileResponse['profile_image'],
-        createdAt: DateTime.parse(profileResponse['created_at']),
-      );
+            })
+            .select()
+            .single();
+
+        // Step 3: Call the Supabase function for any additional setup
+        try {
+          await client.functions.invoke('on_user_signup', body: {
+            'user_id': authResponse.user!.id,
+            'email': email,
+            'name': name,
+          });
+        } catch (e) {
+          // Log but don't fail if function call fails
+          print('Warning: Failed to call on_user_signup function: $e');
+        }
+
+        return app_user.User(
+          id: authResponse.user!.id,
+          email: email,
+          name: name,
+          profileImage: profile['profile_image'],
+          createdAt: DateTime.parse(profile['created_at']),
+        );
+      } catch (e) {
+        // If profile creation fails, attempt to clean up by deleting the auth user
+        try {
+          await client.auth.admin.deleteUser(authResponse.user!.id);
+        } catch (_) {
+          // Ignore cleanup errors
+        }
+        throw AppAuthException('Failed to create user profile: ${e.toString()}');
+      }
     } on supabase.AuthException catch (e) {
-      // Handle Supabase AuthException
       throw AppAuthException('Registration failed: ${e.message}');
     } catch (e) {
       if (e is AppAuthException) rethrow;

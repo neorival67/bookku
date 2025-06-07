@@ -1,16 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../services/api_client.dart';
-import '../../models/user.dart';
-import '../../utils/app_exceptions.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import '../../models/auth_user.dart';
+import '../../services/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final ApiClient _apiClient;
+  final AuthRepository _authRepository;
 
-  AuthBloc({required ApiClient apiClient})
-      : _apiClient = apiClient,
-        super(const AuthState.unknown()) {
+  AuthBloc(this._authRepository) : super(const AuthState.unknown()) {
+    // Listen to Supabase auth state changes
+    _authRepository.authStateChanges.listen((supabase.AuthState authState) {
+      if (authState.session != null) {
+        add(AuthUserChanged(
+          AuthUser.fromSupabaseUser(authState.session!.user),
+        ));
+      } else {
+        add(const AuthUserChanged(null));
+      }
+    });
+
     on<AuthStarted>(_onAuthStarted);
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthRegisterRequested>(_onAuthRegisterRequested);
@@ -22,14 +31,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthStarted event,
     Emitter<AuthState> emit,
   ) async {
-    try {
-      final user = await _apiClient.getCurrentUser();
-      if (user != null) {
-        emit(AuthState.authenticated(user));
-      } else {
-        emit(const AuthState.unauthenticated());
-      }
-    } catch (e) {
+    final user = _authRepository.currentUser;
+    if (user != null) {
+      emit(AuthState.authenticated(AuthUser.fromSupabaseUser(user)));
+    } else {
       emit(const AuthState.unauthenticated());
     }
   }
@@ -41,18 +46,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthState.loading());
     
     try {
-      final user = await _apiClient.login(
+      final response = await _authRepository.signIn(
         email: event.email,
         password: event.password,
       );
-      emit(AuthState.authenticated(user));
-    } on AppAuthException catch (e) {
-      emit(AuthState.unauthenticated(
-        errorMessage: e.message,
-      ));
+      
+      if (response.user != null) {
+        emit(AuthState.authenticated(
+          AuthUser.fromSupabaseUser(response.user!),
+        ));
+      } else {
+        emit(const AuthState.unauthenticated(
+          errorMessage: 'Login failed',
+        ));
+      }
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: 'Login failed: ${e.toString()}',
+        errorMessage: e.toString(),
       ));
     }
   }
@@ -64,19 +74,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthState.loading());
     
     try {
-      final user = await _apiClient.register(
+      final response = await _authRepository.signUp(
         name: event.name,
         email: event.email,
         password: event.password,
       );
-      emit(AuthState.authenticated(user));
-    } on AppAuthException catch (e) {
-      emit(AuthState.unauthenticated(
-        errorMessage: e.message,
-      ));
+      
+      if (response.user != null) {
+        emit(AuthState.authenticated(
+          AuthUser.fromSupabaseUser(response.user!),
+        ));
+      } else {
+        emit(const AuthState.unauthenticated(
+          errorMessage: 'Registration failed',
+        ));
+      }
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: 'Registration failed: ${e.toString()}',
+        errorMessage: e.toString(),
       ));
     }
   }
@@ -85,16 +100,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    emit(const AuthState.loading());
+    
     try {
-      await _apiClient.logout();
+      await _authRepository.signOut();
       emit(const AuthState.unauthenticated());
-    } on AppAuthException catch (e) {
-      emit(AuthState.unauthenticated(
-        errorMessage: e.message,
-      ));
     } catch (e) {
       emit(AuthState.unauthenticated(
-        errorMessage: 'Logout failed: ${e.toString()}',
+        errorMessage: e.toString(),
       ));
     }
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:perpustakaanapp/bloc/auth/auth_state.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../bloc/auth/auth_bloc.dart';
-import '../bloc/auth/auth_event.dart';
+import '../bloc/auth/auth_state.dart';
 import '../models/book.dart';
-import '../services/api_client.dart';
+import '../services/book_repository.dart';
 import '../widgets/book_list_widget.dart';
 import '../widgets/category_slider.dart';
 import 'explore_screen.dart';
@@ -66,6 +66,7 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
+  late final BookRepository _bookRepository;
   List<Book> _recentBooks = [];
   List<Book> _popularBooks = [];
   List<String> _categories = [];
@@ -78,34 +79,38 @@ class _HomeContentState extends State<HomeContent> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _bookRepository = context.read<BookRepository>();
+  }
+
   Future<void> _loadData() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final apiClient = context.read<ApiClient>();
-      
-      // Load categories
-      final categories = await apiClient.getCategories();
-      
-      // Load recent books
-      final recentBooks = await apiClient.getBooks(
-        limit: 10,
-      );
-      
-      // Load popular books
-      final popularBooks = await apiClient.getBooks(
-        limit: 10,
-      );
+      // Load data in parallel for better performance
+      final futures = await Future.wait([
+        _bookRepository.getCategories(),
+        _bookRepository.getBooks(limit: 10), // recent books
+        _bookRepository.getBooks(limit: 10), // popular books
+      ]);
+
+      if (!mounted) return;
 
       setState(() {
-        _categories = categories;
-        _recentBooks = recentBooks;
-        _popularBooks = popularBooks;
+        _categories = futures[0] as List<String>;
+        _recentBooks = futures[1] as List<Book>;
+        _popularBooks = futures[2] as List<Book>;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      
       setState(() {
         _isLoading = false;
       });
@@ -132,13 +137,18 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void _onFavoriteTap(Book book) async {
+    if (!mounted) return;
+    
     try {
-      final apiClient = context.read<ApiClient>();
-      await apiClient.toggleFavorite(book.id);
+      await _bookRepository.toggleFavorite(book.id);
+      
+      if (!mounted) return;
       
       // Refresh the book lists
       _loadData();
     } catch (e) {
+      if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error updating favorite: ${e.toString()}'),

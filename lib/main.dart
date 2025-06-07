@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:provider/provider.dart';
 
 import 'bloc/auth/auth_bloc.dart';
 import 'bloc/auth/auth_event.dart';
@@ -8,7 +10,8 @@ import 'bloc/auth/auth_state.dart';
 import 'config/app_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/api_client.dart';
+import 'services/auth_repository.dart';
+import 'services/book_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,24 +35,40 @@ void main() async {
   // Initialize Supabase
   try {
     await AppConfig.initializeSupabase();
+    final supabase = Supabase.instance.client;
+    final authRepository = AuthRepository(supabase);
+    final bookRepository = BookRepository(supabase);
+    
+    runApp(MyApp(
+      authRepository: authRepository,
+      bookRepository: bookRepository,
+    ));
   } catch (e) {
     // Show error dialog or handle the error appropriately
     print('Failed to initialize app: $e');
     return;
   }
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final AuthRepository authRepository;
+  final BookRepository bookRepository;
+
+  const MyApp({
+    Key? key,
+    required this.authRepository,
+    required this.bookRepository,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiProvider(
       providers: [
-        BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(apiClient: ApiClient())..add(AuthStarted()),
+        Provider<BookRepository>(
+          create: (_) => bookRepository,
+        ),
+        BlocProvider(
+          create: (context) => AuthBloc(authRepository)..add(AuthStarted()),
         ),
       ],
       child: MaterialApp(
