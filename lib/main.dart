@@ -10,6 +10,7 @@ import 'bloc/auth/auth_state.dart';
 import 'config/app_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'services/api_client.dart';
 import 'services/auth_repository.dart';
 import 'services/book_repository.dart';
 
@@ -38,10 +39,12 @@ void main() async {
     final supabase = Supabase.instance.client;
     final authRepository = AuthRepository(supabase);
     final bookRepository = BookRepository(supabase);
+    final apiClient = ApiClient();
     
     runApp(MyApp(
       authRepository: authRepository,
       bookRepository: bookRepository,
+      apiClient: apiClient,
     ));
   } catch (e) {
     // Show error dialog or handle the error appropriately
@@ -53,11 +56,13 @@ void main() async {
 class MyApp extends StatelessWidget {
   final AuthRepository authRepository;
   final BookRepository bookRepository;
+  final ApiClient apiClient;
 
   const MyApp({
     Key? key,
     required this.authRepository,
     required this.bookRepository,
+    required this.apiClient,
   }) : super(key: key);
 
   @override
@@ -66,6 +71,9 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<BookRepository>(
           create: (_) => bookRepository,
+        ),
+        Provider<ApiClient>(
+          create: (_) => apiClient,
         ),
         BlocProvider(
           create: (context) => AuthBloc(authRepository)..add(AuthStarted()),
