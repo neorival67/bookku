@@ -224,7 +224,7 @@ class _HomeContentState extends State<HomeContent> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Book Reader',
+          'Bookku',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -297,12 +297,6 @@ class _HomeContentState extends State<HomeContent> {
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            // TODO: Navigate to see all popular books
-                          },
-                          child: const Text('See All'),
                         ),
                       ],
                     ),

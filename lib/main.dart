@@ -26,10 +26,10 @@ void main() async {
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.green,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.green,
+      systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
   
@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Book Reader App',
+        title: 'Bookku',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
@@ -88,7 +88,7 @@ class MyApp extends StatelessWidget {
           fontFamily: 'Poppins',
           scaffoldBackgroundColor: Colors.white,
           appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.green,
             foregroundColor: Colors.black,
             elevation: 0,
             centerTitle: true,
@@ -96,7 +96,7 @@ class MyApp extends StatelessWidget {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigo,
+              backgroundColor: Colors.lightGreen,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -138,7 +138,7 @@ class MyApp extends StatelessWidget {
             shadowColor: Colors.black.withOpacity(0.1),
           ),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-            selectedItemColor: Colors.indigo,
+            selectedItemColor: Colors.green,
             unselectedItemColor: Colors.grey,
             type: BottomNavigationBarType.fixed,
             elevation: 8,
