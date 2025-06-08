@@ -10,6 +10,7 @@ import 'bloc/auth/auth_state.dart';
 import 'config/app_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_repository.dart';
 import 'services/book_repository.dart';
@@ -152,7 +153,11 @@ class MyApp extends StatelessWidget {
             behavior: SnackBarBehavior.floating,
           ),
         ),
-        home: const AuthWrapper(),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/auth': (context) => const AuthWrapper(),
+        },
       ),
     );
   }
