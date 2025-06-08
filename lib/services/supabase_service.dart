@@ -299,6 +299,7 @@ class SupabaseService {
   
   static Future<Book> getBookById(String id) async {
     try {
+      print('Fetching book details for ID: $id');
       final response = await client
           .from('books')
           .select('''
@@ -307,6 +308,8 @@ class SupabaseService {
           ''')
           .eq('id', id)
           .single();
+      
+      print('Book PDF URL from DB: ${response['pdf_url']}');
       
       // Check if book is favorite for current user
       final currentUser = client.auth.currentUser;

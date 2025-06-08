@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/book.dart';
 import '../services/book_repository.dart';
+import 'pdf_viewer_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Book book;
@@ -202,13 +203,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement read functionality
-                      },
+                      onPressed: widget.book.pdfUrl != null
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PdfViewerScreen(
+                                    book: widget.book,
+                                  ),
+                                ),
+                              );
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Start Reading'),
+                      child: Text(
+                        widget.book.pdfUrl != null
+                            ? 'Start Reading'
+                            : 'PDF Not Available',
+                      ),
                     ),
                   ),
                 ],
