@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:perpustakaanapp/models/user.dart';
+import '../../models/auth_user.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -41,7 +41,7 @@ class AuthRegisterRequested extends AuthEvent {
 class AuthLogoutRequested extends AuthEvent {}
 
 class AuthUserChanged extends AuthEvent {
-  final User? user;
+  final AuthUser? user;
 
   const AuthUserChanged(this.user);
 

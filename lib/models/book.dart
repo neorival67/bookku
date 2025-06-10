@@ -4,7 +4,7 @@ class Book {
   final String author;
   final String description;
   final String coverUrl;
-  final String category;
+  final List<String> categories;
   final double rating;
   final int pages;
   final String? pdfUrl;
@@ -17,7 +17,7 @@ class Book {
     required this.author,
     required this.description,
     required this.coverUrl,
-    required this.category,
+    required this.categories,
     required this.rating,
     required this.pages,
     this.pdfUrl,
@@ -26,13 +26,22 @@ class Book {
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
+    List<String> parseCategories(dynamic categoriesData) {
+      if (categoriesData == null) return [];
+      if (categoriesData is String) return [categoriesData];
+      if (categoriesData is List) {
+        return categoriesData.map((e) => e.toString()).toList();
+      }
+      return [];
+    }
+
     return Book(
       id: json['id'],
       title: json['title'],
       author: json['author'],
       description: json['description'],
       coverUrl: json['cover_url'],
-      category: json['category'],
+      categories: parseCategories(json['categories'] ?? json['category']),
       rating: (json['rating'] as num).toDouble(),
       pages: json['pages'],
       pdfUrl: json['pdf_url'],
@@ -48,7 +57,7 @@ class Book {
       'author': author,
       'description': description,
       'cover_url': coverUrl,
-      'category': category,
+      'categories': categories,
       'rating': rating,
       'pages': pages,
       'pdf_url': pdfUrl,
@@ -63,7 +72,7 @@ class Book {
     String? author,
     String? description,
     String? coverUrl,
-    String? category,
+    List<String>? categories,
     double? rating,
     int? pages,
     String? pdfUrl,
@@ -76,7 +85,7 @@ class Book {
       author: author ?? this.author,
       description: description ?? this.description,
       coverUrl: coverUrl ?? this.coverUrl,
-      category: category ?? this.category,
+      categories: categories ?? this.categories,
       rating: rating ?? this.rating,
       pages: pages ?? this.pages,
       pdfUrl: pdfUrl ?? this.pdfUrl,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
@@ -15,37 +16,51 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late final ApiClient _apiClient;
   List<Book> _favoriteBooks = [];
   bool _isLoading = true;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadFavoriteBooks();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _apiClient = context.read<ApiClient>();
+      _loadFavoriteBooks();
+      _initialized = true;
+    }
   }
 
   Future<void> _loadFavoriteBooks() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final apiClient = ApiClient();
-      final favoriteBooks = await apiClient.getFavoriteBooks();
+      final favoriteBooks = await _apiClient.getFavoriteBooks();
+
+      if (!mounted) return;
 
       setState(() {
         _favoriteBooks = favoriteBooks;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error loading favorite books: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -57,16 +72,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _onFavoriteTap(Book book) async {
     try {
-      final apiClient = ApiClient();
-      await apiClient.toggleFavorite(book.id);
+      await _apiClient.toggleFavorite(book.id);
       
-      // Refresh the favorite books
+      if (!mounted) return;
+
+      // Update the UI immediately
+      setState(() {
+        _favoriteBooks = _favoriteBooks.map((b) {
+          if (b.id == book.id) {
+            return b.copyWith(isFavorite: !b.isFavorite);
+          }
+          return b;
+        }).toList();
+      });
+      
+      // Refresh the favorite books in the background
       _loadFavoriteBooks();
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            !book.isFavorite 
+              ? 'Added to favorites' 
+              : 'Removed from favorites'
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars(); 
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error updating favorite: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -103,14 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // Navigate to settings screen
-            },
-          ),
-        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
@@ -137,13 +174,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                          backgroundImage: user.profileImage != null
-                              ? NetworkImage(user.profileImage!)
+                          backgroundImage: user.avatarUrl != null
+                              ? NetworkImage(user.avatarUrl!)
                               : null,
-                          child: user.profileImage == null
+                          child: user.avatarUrl == null
                               ? Text(
-                                  user.name.isNotEmpty
-                                      ? user.name[0].toUpperCase()
+                                  user.name?.isNotEmpty == true
+                                      ? user.name![0].toUpperCase()
                                       : '?',
                                   style: const TextStyle(
                                     fontSize: 40,
@@ -156,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         // User Name
                         Text(
-                          user.name,
+                          user.name ?? 'User',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -173,24 +210,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 24),
                         // Edit Profile Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              // Navigate to edit profile screen
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: Theme.of(context).primaryColor,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Edit Profile'),
-                          ),
-                        ),
                       ],
                     ),
                   ),

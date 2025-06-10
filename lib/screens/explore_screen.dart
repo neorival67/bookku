@@ -3,6 +3,7 @@ import '../models/book.dart';
 import '../services/api_client.dart';
 import '../widgets/book_list_widget.dart';
 import '../widgets/category_slider.dart';
+import 'book_detail_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key}) : super(key: key);
@@ -79,7 +80,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   void _onBookTap(Book book) {
-    // Navigate to book details screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookDetailScreen(book: book),
+      ),
+    );
   }
 
   void _onFavoriteTap(Book book) async {
