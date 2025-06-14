@@ -34,23 +34,83 @@ void main() async {
     ),
   );
   
-  // Initialize Supabase
-  try {
-    await AppConfig.initializeSupabase();
-    final supabase = Supabase.instance.client;
-    final authRepository = AuthRepository(supabase);
-    final bookRepository = BookRepository(supabase);
-    final apiClient = ApiClient();
-    
-    runApp(MyApp(
-      authRepository: authRepository,
-      bookRepository: bookRepository,
-      apiClient: apiClient,
-    ));
-  } catch (e) {
-    // Show error dialog or handle the error appropriately
-    print('Failed to initialize app: $e');
-    return;
+  // Initialize Supabase with retry mechanism
+  bool initialized = false;
+  int retryCount = 0;
+  const maxRetries = 3;
+  
+  while (!initialized && retryCount < maxRetries) {
+    try {
+      await AppConfig.initializeSupabase();
+      initialized = true;
+      
+      final supabase = Supabase.instance.client;
+      final authRepository = AuthRepository(supabase);
+      final bookRepository = BookRepository(supabase);
+      final apiClient = ApiClient();
+      
+      runApp(MyApp(
+        authRepository: authRepository,
+        bookRepository: bookRepository,
+        apiClient: apiClient,
+      ));
+    } catch (e) {
+      retryCount++;
+      print('Failed to initialize Supabase (attempt $retryCount/$maxRetries): $e');
+      
+      if (retryCount >= maxRetries) {
+        runApp(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Connection Error',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        'Failed to connect to the server. Please check your internet connection and try again.\n\nError: ${e.toString()}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Restart app
+                        main();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+      
+      // Wait before retrying
+      await Future.delayed(Duration(seconds: retryCount * 2));
+    }
   }
 }
 

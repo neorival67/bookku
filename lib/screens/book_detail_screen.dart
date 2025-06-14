@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/book.dart';
 import '../services/book_repository.dart';
+import '../services/favorite_update_service.dart';
 import 'pdf_viewer_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
@@ -36,6 +37,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       setState(() {
         _isFavorite = !_isFavorite;
       });
+
+      // Notify other screens about the favorite update
+      FavoriteUpdateService().notifyFavoriteUpdated(widget.book.id);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

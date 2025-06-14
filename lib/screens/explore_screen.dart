@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
 import '../services/api_client.dart';
+import '../services/favorite_update_service.dart';
 import '../widgets/book_list_widget.dart';
 import '../widgets/category_slider.dart';
 import 'book_detail_screen.dart';
@@ -93,6 +94,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final apiClient = ApiClient();
       await apiClient.toggleFavorite(book.id);
       
+      // Notify other screens about the favorite update
+      FavoriteUpdateService().notifyFavoriteUpdated(book.id);
+
       // Refresh the book list
       _loadData();
     } catch (e) {
@@ -159,6 +163,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 onBookTap: _onBookTap,
                 onFavoriteTap: _onFavoriteTap,
                 isLoading: _isLoading,
+                scrollable: true, // Enable scrolling in the explore screen
               ),
             ),
           ),

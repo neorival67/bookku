@@ -6,6 +6,7 @@ class BookListWidget extends StatelessWidget {
   final Function(Book) onBookTap;
   final Function(Book)? onFavoriteTap;
   final bool isLoading;
+  final bool scrollable;
 
   const BookListWidget({
     Key? key,
@@ -13,6 +14,7 @@ class BookListWidget extends StatelessWidget {
     required this.onBookTap,
     this.onFavoriteTap,
     this.isLoading = false,
+    this.scrollable = true,
   }) : super(key: key);
 
   @override
@@ -46,21 +48,36 @@ class BookListWidget extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: books.length,
-      itemBuilder: (context, index) {
-        final book = books[index];
-        return BookCard(
-          book: book,
-          onTap: () => onBookTap(book),
-          onFavoriteTap: onFavoriteTap != null 
-              ? () => onFavoriteTap!(book)
-              : null,
-        );
-      },
-    );
+    Widget content = scrollable
+        ? ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: books.length,
+            itemBuilder: (context, index) {
+              final book = books[index];
+              return BookCard(
+                book: book,
+                onTap: () => onBookTap(book),
+                onFavoriteTap: onFavoriteTap != null 
+                    ? () => onFavoriteTap!(book)
+                    : null,
+              );
+            },
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: books.map((book) => BookCard(
+              book: book,
+              onTap: () => onBookTap(book),
+              onFavoriteTap: onFavoriteTap != null 
+                  ? () => onFavoriteTap!(book)
+                  : null,
+            )).toList(),
+          );
+          
+    return scrollable
+        ? Expanded(child: content)
+        : content;
   }
 }
 
@@ -79,7 +96,7 @@ class BookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),

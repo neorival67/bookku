@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import '../services/favorite_update_service.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_state.dart';
 import '../models/book.dart';
@@ -97,8 +98,6 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-  
-
   bool _initialized = false;
 
   Future<void> _loadData() async {
@@ -166,14 +165,12 @@ class _HomeContentState extends State<HomeContent> {
 
   void _onFavoriteTap(Book book) async {
     try {
+      // Make the API call first
       await _bookRepository.toggleFavorite(book.id);
       
       if (!mounted) return;
-      
-      // Refresh the book lists
-      _loadData();
 
-      // Update the UI to show the change immediately
+      // After successful API call, update the UI
       setState(() {
         _popularBooks = _popularBooks.map((b) {
           if (b.id == book.id) {
@@ -190,15 +187,18 @@ class _HomeContentState extends State<HomeContent> {
         }).toList();
       });
 
+      // Notify other screens about the favorite update
+      FavoriteUpdateService().notifyFavoriteUpdated(book.id);
+
       // Show success message
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            !book.isFavorite 
-              ? 'Added to favorites' 
-              : 'Removed from favorites'
+            book.isFavorite 
+              ? 'Removed from favorites' 
+              : 'Added to favorites'
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
@@ -207,6 +207,10 @@ class _HomeContentState extends State<HomeContent> {
     } catch (e) {
       if (!mounted) return;
       
+      // If there's an error, refresh data to ensure UI is in sync with server
+      _loadData();
+      
+      // Show error message
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(
@@ -374,6 +378,31 @@ class _HomeContentState extends State<HomeContent> {
                                         ),
                                       ),
                                     ),
+                                    // Favorite button
+                                    Positioned(
+                                      bottom: 8,
+                                      right: 8,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black87,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: IconButton(
+                                          iconSize: 20,
+                                          padding: const EdgeInsets.all(8),
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () => _onFavoriteTap(book),
+                                          icon: Icon(
+                                            book.isFavorite 
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                            color: book.isFavorite 
+                                              ? Colors.red
+                                              : Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -427,17 +456,25 @@ class _HomeContentState extends State<HomeContent> {
                         ),
                         TextButton(
                           onPressed: () {
-                            // TODO: Navigate to see all recent books
+                            // Navigate to Explore screen with default list
+                            setState(() {
+                              (context.findAncestorStateOfType<_HomeScreenState>())
+                                ?._currentIndex = 1;
+                            });
                           },
                           child: const Text('See All'),
                         ),
                       ],
                     ),
                   ),
-                  BookListWidget(
-                    books: _recentBooks.take(5).toList(),
-                    onBookTap: _onBookTap,
-                    onFavoriteTap: _onFavoriteTap,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: BookListWidget(
+                      books: _recentBooks.take(5).toList(),
+                      onBookTap: _onBookTap,
+                      onFavoriteTap: _onFavoriteTap,
+                      scrollable: false, // Disable scrolling in home screen list
+                    ),
                   ),
                   const SizedBox(height: 24),
                 ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,9 @@ import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../models/book.dart';
 import '../services/api_client.dart';
+import '../services/favorite_update_service.dart';
 import '../widgets/book_list_widget.dart';
+import 'book_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,6 +20,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final ApiClient _apiClient;
+  late final StreamSubscription _favoriteSubscription;
   List<Book> _favoriteBooks = [];
   bool _isLoading = true;
   bool _initialized = false;
@@ -26,9 +30,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     if (!_initialized) {
       _apiClient = context.read<ApiClient>();
+      _initializeFavoriteListener();
       _loadFavoriteBooks();
       _initialized = true;
     }
+  }
+
+  void _initializeFavoriteListener() {
+    _favoriteSubscription = FavoriteUpdateService().stream.listen((_) {
+      _loadFavoriteBooks();
+    });
+  }
+
+  @override
+  void dispose() {
+    _favoriteSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _loadFavoriteBooks() async {
@@ -54,9 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
       
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.clearSnackBars();
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading favorite books: ${e.toString()}'),
           backgroundColor: Colors.red,
@@ -67,28 +82,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onBookTap(Book book) {
-    // Navigate to book details screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookDetailScreen(book: book),
+      ),
+    );
   }
 
   void _onFavoriteTap(Book book) async {
     try {
+      // Call API
       await _apiClient.toggleFavorite(book.id);
       
       if (!mounted) return;
 
-      // Update the UI immediately
-      setState(() {
-        _favoriteBooks = _favoriteBooks.map((b) {
-          if (b.id == book.id) {
-            return b.copyWith(isFavorite: !b.isFavorite);
-          }
-          return b;
-        }).toList();
-      });
-      
-      // Refresh the favorite books in the background
-      _loadFavoriteBooks();
+      // Notify other screens
+      FavoriteUpdateService().notifyFavoriteUpdated(book.id);
 
+      // Reload favorite books to ensure sync with server
+      await _loadFavoriteBooks();
+
+      // Show success message
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(
@@ -104,9 +119,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-
+      
+      // Show error message
       final messenger = ScaffoldMessenger.of(context);
-      messenger.clearSnackBars(); 
+      messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error updating favorite: ${e.toString()}'),
@@ -170,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Profile Image
+                        // Avatar
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
@@ -191,6 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null,
                         ),
                         const SizedBox(height: 16),
+                        
                         // User Name
                         Text(
                           user.name ?? 'User',
@@ -200,6 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
+                        
                         // User Email
                         Text(
                           user.email,
@@ -208,37 +226,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        // Edit Profile Button
                       ],
                     ),
                   ),
-                  
+
                   const Divider(),
                   
                   // Favorite Books
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Favorite Books',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Favorite Books',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 16),
-                        BookListWidget(
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 300, // Atau sesuaikan tinggi sesuai kebutuhan
+                        child: BookListWidget(
                           books: _favoriteBooks,
                           onBookTap: _onBookTap,
                           onFavoriteTap: _onFavoriteTap,
                           isLoading: _isLoading,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
                   
                   const SizedBox(height: 24),
                   
